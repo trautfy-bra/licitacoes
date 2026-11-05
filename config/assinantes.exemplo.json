@@ -1,0 +1,24 @@
+[
+  {
+    "email": "voce@exemplo.com",
+    "nome": "Teste do Bruno",
+    "plano": "pro",
+    "ativo": true,
+    "ufs": ["SP", "MG"],
+    "municipios": [],
+    "nichos": ["comunicacao-publicidade", "audiovisual-eventos"],
+    "termos": ["producao de video", "cobertura fotografica"],
+    "excluir_termos": ["iluminacao publica"],
+    "valor_min": 10000
+  },
+  {
+    "email": "lead@exemplo.com",
+    "nome": "Usuário do plano grátis",
+    "plano": "gratis",
+    "ativo": true,
+    "ufs": ["SP"],
+    "nichos": ["software-ti"],
+    "termos": [],
+    "valor_min": 0
+  }
+]

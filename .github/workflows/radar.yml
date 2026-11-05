@@ -1,0 +1,46 @@
+name: radar-diario
+
+on:
+  schedule:
+    - cron: "17 9 * * *"   # 06:17 em Brasília, todo dia
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: radar
+  cancel-in-progress: false
+
+jobs:
+  rodar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements.txt
+      - name: Coletar editais do PNCP
+        run: python -m radar.coletar --ufs SP MG
+      - name: Enviar e-mails
+        env:
+          SMTP_HOST: ${{ secrets.SMTP_HOST }}
+          SMTP_PORT: ${{ secrets.SMTP_PORT }}
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASS: ${{ secrets.SMTP_PASS }}
+          EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
+          LINK_ASSINATURA: ${{ secrets.LINK_ASSINATURA }}
+          ASSINANTES_JSON: ${{ secrets.ASSINANTES_JSON }}
+        run: |
+          if [ -n "$ASSINANTES_JSON" ]; then echo "$ASSINANTES_JSON" > config/assinantes.json; fi
+          python -m radar.enviar
+          rm -f config/assinantes.json
+      - name: Salvar base atualizada
+        run: |
+          git config user.name "radar-bot"
+          git config user.email "radar-bot@users.noreply.github.com"
+          git add data/editais.db
+          git commit -m "radar: atualização $(date -u +%F)" || echo "sem mudanças"
+          git push

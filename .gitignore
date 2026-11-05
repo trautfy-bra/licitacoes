@@ -1,0 +1,4 @@
+config/assinantes.json
+data/saida/
+__pycache__/
+*.pyc
