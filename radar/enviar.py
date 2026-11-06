@@ -129,7 +129,7 @@ def enviar(dest: str, assunto: str, corpo: str, ensaio: bool) -> None:
     msg["To"] = dest
     msg.set_content("Seu cliente de e-mail não exibe HTML. Abra no navegador.")
     msg.add_alternative(corpo, subtype="html")
-    with smtplib.SMTP(host, int(os.environ.get("SMTP_PORT", 587))) as s:
+    with smtplib.SMTP(host, int(os.environ.get("SMTP_PORT") or 587)) as s:
         s.starttls()
         s.login(os.environ["SMTP_USER"], os.environ["SMTP_PASS"])
         s.send_message(msg)

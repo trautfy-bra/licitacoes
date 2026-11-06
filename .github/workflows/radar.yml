@@ -3,6 +3,7 @@ name: radar-diario
 on:
   schedule:
     - cron: "17 9 * * *"   # 06:17 em Brasília, todo dia
+    - cron: "41 10 * * 5"  # sexta 07:41 em Brasília: relatório semanal para a revisão
   workflow_dispatch: {}
 
 permissions:
@@ -23,8 +24,10 @@ jobs:
           python-version: "3.12"
       - run: pip install -r requirements.txt
       - name: Coletar editais do PNCP
+        if: github.event.schedule != '41 10 * * 5'
         run: python -m radar.coletar --ufs SP MG
       - name: Enviar e-mails
+        if: github.event.schedule != '41 10 * * 5'
         env:
           SMTP_HOST: ${{ secrets.SMTP_HOST }}
           SMTP_PORT: ${{ secrets.SMTP_PORT }}
@@ -37,10 +40,13 @@ jobs:
           if [ -n "$ASSINANTES_JSON" ]; then echo "$ASSINANTES_JSON" > config/assinantes.json; fi
           python -m radar.enviar
           rm -f config/assinantes.json
-      - name: Salvar base atualizada
+      - name: Relatório semanal
+        if: github.event.schedule == '41 10 * * 5' || github.event_name == 'workflow_dispatch'
+        run: python -m radar.relatorio
+      - name: Salvar base e memória
         run: |
           git config user.name "radar-bot"
           git config user.email "radar-bot@users.noreply.github.com"
-          git add data/editais.db
+          git add data/editais.db cerebro/memoria
           git commit -m "radar: atualização $(date -u +%F)" || echo "sem mudanças"
           git push

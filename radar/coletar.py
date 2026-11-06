@@ -14,6 +14,7 @@ from .nichos import NICHOS, classificar
 from .pncp import MODALIDADES, buscar_abertos, normalizar, normalizar_busca, propostas_abertas
 
 DB = Path(__file__).resolve().parent.parent / "data" / "editais.db"
+EXECUCOES = Path(__file__).resolve().parent.parent / "cerebro" / "memoria" / "execucoes.jsonl"
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS editais (
@@ -92,9 +93,23 @@ def main(ufs: list[str], modo: str = "busca") -> dict:
     return resumo
 
 
+def registrar(resumo: dict) -> None:
+    EXECUCOES.parent.mkdir(parents=True, exist_ok=True)
+    with EXECUCOES.open("a", encoding="utf-8") as f:
+        f.write(json.dumps(resumo, ensure_ascii=False) + "\n")
+
+
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("--ufs", nargs="+", default=["SP", "MG"])
     ap.add_argument("--modo", choices=["busca", "varredura"], default="busca")
     a = ap.parse_args()
-    main(a.ufs, a.modo)
+    try:
+        registrar(main(a.ufs, a.modo))
+    except Exception as exc:  # registra a falha para a revisão semanal; no modo busca, tenta o plano B
+        registrar({"quando": datetime.now(timezone.utc).isoformat(timespec="seconds"), "modo": a.modo, "erro": repr(exc)})
+        if a.modo == "busca":
+            # plano B: API oficial
+            registrar(main(a.ufs, "varredura"))
+        else:
+            raise

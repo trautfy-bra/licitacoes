@@ -10,8 +10,21 @@ radar/nichos.py    nichos: termos de busca + regex de inclusão/exclusão
 radar/coletar.py   grava/atualiza editais em data/editais.db (SQLite versionado no repo)
 radar/enviar.py    e-mail diário (Pro) ou semanal com 3 itens (grátis); modo --ensaio grava HTML
 .github/workflows/radar.yml   agenda diária, segredos via GitHub Secrets
+radar/relatorio.py relatório semanal sem LLM e sem dados pessoais → cerebro/memoria/semanal/
+cerebro/           "segundo cérebro" do negócio:
+  contexto/        quem é o cliente, oferta, regras que nenhuma rotina quebra
+  memoria/         decisões, feedback dos assinantes, log das coletas, relatórios semanais
+  rotinas/         prompt da revisão semanal (tarefa agendada do Claude, sexta)
 tests/             teste ponta a ponta sem rede
 ```
+
+## Como o negócio roda sozinho
+- **Todo dia 06:17:** GitHub Action coleta, envia e grava o log em `cerebro/memoria/execucoes.jsonl`.
+  Se a busca do portal falhar, tenta a API oficial (plano B) e registra o erro.
+- **Sexta 07:41:** GitHub Action gera o relatório da semana.
+- **Sexta depois das 08h:** tarefa agendada do Claude lê contexto, relatório e respostas dos assinantes,
+  registra o feedback, deixa rascunhos de suporte e abre um Pull Request com ajustes de filtro.
+  Você revisa a página "3 coisas que precisam de você" e aprova ou não o PR.
 
 ## Rodar localmente
 ```

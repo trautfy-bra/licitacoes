@@ -25,3 +25,19 @@ def test_fluxo(tmp_path, monkeypatch):
     enviar.main(ensaio=True)
     html = (tmp_path / "saida" / "t_at_x.com.html").read_text()
     assert "ITANHANDU" in html and "pncp.gov.br/app/editais/18186718000180/2026/58" in html
+
+
+def test_relatorio(tmp_path, monkeypatch):
+    import radar.relatorio as relatorio
+    db = tmp_path / "e.db"
+    orig = coletar.conectar
+    monkeypatch.setattr(coletar, "buscar_abertos", lambda termo, ufs: iter(FIX))
+    monkeypatch.setattr(coletar, "conectar", lambda: orig(db))
+    monkeypatch.setattr(relatorio, "conectar", lambda: orig(db))
+    monkeypatch.setattr(coletar, "EXECUCOES", tmp_path / "ex.jsonl")
+    monkeypatch.setattr(relatorio, "EXECUCOES", tmp_path / "ex.jsonl")
+    monkeypatch.setattr(relatorio, "SEMANAL", tmp_path / "semanal")
+    coletar.registrar(coletar.main(["SP", "MG"], "busca"))
+    out = relatorio.main().read_text()
+    assert "Execuções: 1 · com erro: 0" in out
+    assert "| Audiovisual, som e eventos | 4 | 1 | 3 |" in out
