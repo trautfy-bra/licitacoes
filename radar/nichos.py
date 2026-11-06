@@ -12,7 +12,9 @@ import unicodedata
 def normalizar_texto(s: str) -> str:
     s = unicodedata.normalize("NFKD", s or "")
     s = "".join(c for c in s if not unicodedata.combining(c))
-    return re.sub(r"\s+", " ", s.lower())
+    s = re.sub(r"\s+", " ", s.lower()).strip()
+    # remove o prefixo do sistema de origem, ex.: "[portal de compras publicas] - "
+    return re.sub(r"^\[[^\]]{1,60}\]\s*-?\s*", "", s)
 
 
 NICHOS: dict[str, dict] = {
@@ -34,18 +36,21 @@ NICHOS: dict[str, dict] = {
             r"\bpalco", r"\bshows?\b", r"\beventos?\b", r"\btransmissao ao vivo", r"\bestrutura(s)? (para|de) eventos",
             r"\btelao\b", r"\bpaineis? de led\b",
         ],
-        "excluir": [r"iluminacao publica", r"evento adverso"],
+        "excluir": [r"iluminacao publica", r"evento adverso", r"\b(obra|reforma|construcao|pavimentacao)\b",
+                    r"materia(l|is) esportivo", r"seguranca (nao armada|patrimonial)"],
     },
     "software-ti": {
-        "busca": ["software", "sistema de gestão", "licença de uso", "aplicativo", "nuvem", "suporte técnico", "portal"],
         "nome": "Software, sistemas e serviços de TI",
+        "busca": ["software", "sistema de gestão", "licença de uso", "aplicativo", "nuvem", "suporte técnico", "portal"],
         "incluir": [
-            r"\bsoftware", r"\bsistemas? (de|integrado|informatizado|web|de gestao)", r"\blicenc(a|iamento) de (uso|software)",
-            r"\bsaas\b", r"\bdesenvolvimento de (sistema|software|aplicativo|portal|site)", r"\bportal\b", r"\baplicativo",
-            r"\bcomputacao em nuvem\b", r"\bnuvem\b", r"\bdata ?center", r"\bhospedagem de", r"\bsuporte tecnico",
-            r"\btecnologia da informacao\b", r"\bfabrica de software",
+            r"\bsoftwares?\b", r"\bsistemas? (de gestao|integrado|informatizado|web|de informac|computacional)",
+            r"\bsolucao (tecnologica|informatizada|de ti|em nuvem)", r"\blicenc(a|as|iamento) de (uso|software|direito de uso)",
+            r"\bsaas\b", r"\bdesenvolvimento de (sistemas?|software|aplicativos?|portal|sites?)", r"\bportal (web|institucional|da transparencia)",
+            r"\baplicativos?\b", r"\bcomputacao em nuvem\b", r"\bdata ?center", r"\bhospedagem de (sites?|sistemas?|dados)",
+            r"\btecnologia da informacao\b", r"\bfabrica de software", r"\bsuporte tecnico (a|ao|aos|de|em) (sistemas?|software|ti|informatica)",
         ],
-        "excluir": [r"sistema de (abastecimento|esgoto|drenagem|ar condicionado|climatiza)", r"sistema viario"],
+        "excluir": [r"sistema de (abastecimento|esgoto|drenagem|ar condicionado|climatiza|registro de precos|transferencia|som|iluminacao|seguranca eletronica)",
+                    r"sistema viario"],
     },
     "dados-bi-ia": {
         "busca": ["business intelligence", "inteligência artificial", "análise de dados", "banco de dados", "geoprocessamento", "digitalização de documentos", "pesquisa de opinião"],

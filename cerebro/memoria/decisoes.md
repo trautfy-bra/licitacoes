@@ -8,3 +8,4 @@ Registro em ordem cronológica, mais recente no fim. Uma linha por decisão: dat
 - 2026-11-06 — Nicho inicial: eventos, som e audiovisual em SP e MG (a confirmar pelo Bruno). Software e TI como segundo nicho.
 - 2026-11-06 — Acrescentado o "cérebro" (contexto, memória, ação) para reduzir a revisão semanal e melhorar os filtros com o feedback dos assinantes.
 - 2026-11-06 — Coleta diária passa a usar a API oficial de consulta do PNCP (`--modo varredura`). Motivo: no GitHub Actions (runner no Chile, rede Microsoft) a busca do portal recusa a conexão; a API oficial responde 200 (~10 s por página). A busca fica só para uso local.
+- 2026-11-06 — 1ª coleta real (1.800 editais em nichos, SP+MG, 20 min). Filtro de software/TI corrigido: o prefixo "[Portal de Compras Públicas]" e "sistema de registro de preços" geravam falsos positivos (1.097 → 231). Eventos passa a excluir obra/reforma, material esportivo e segurança (311 → 277).
