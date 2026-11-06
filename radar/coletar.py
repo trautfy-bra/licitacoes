@@ -66,6 +66,13 @@ def gravar(con: sqlite3.Connection, e: dict, agora: str) -> bool:
 
 def main(ufs: list[str], modo: str = "busca") -> dict:
     con = conectar()
+    try:
+        return _coletar(con, ufs, modo)
+    finally:
+        con.close()  # descarta transação pendente e libera o banco para o plano B
+
+
+def _coletar(con: sqlite3.Connection, ufs: list[str], modo: str) -> dict:
     agora = datetime.now(timezone.utc).isoformat(timespec="seconds")
     novos = total = 0
     if modo == "busca":

@@ -1,0 +1,15 @@
+name: diagnostico-rede
+
+on:
+  workflow_dispatch: {}
+
+jobs:
+  testar:
+    runs-on: ubuntu-latest
+    steps:
+      - name: País do runner
+        run: curl -sS -m 20 https://ipinfo.io/json | grep -E '"(country|region|org)"' || true
+      - name: PNCP busca
+        run: curl -sS -m 40 -o /dev/null -w "busca HTTP %{http_code} em %{time_total}s\n" "https://pncp.gov.br/api/search/?tipos_documento=edital&status=recebendo_proposta&ufs=SP&q=palco&pagina=1&tam_pagina=1" || echo "busca: falhou"
+      - name: PNCP API oficial
+        run: curl -sS -m 40 -o /dev/null -w "consulta HTTP %{http_code} em %{time_total}s\n" "https://pncp.gov.br/api/consulta/v1/contratacoes/proposta?dataFinal=20261231&codigoModalidadeContratacao=6&uf=SP&pagina=1&tamanhoPagina=10" || echo "consulta: falhou"

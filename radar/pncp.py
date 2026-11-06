@@ -113,8 +113,10 @@ BUSCA = "https://pncp.gov.br/api/search/"
 def buscar_abertos(termo: str, ufs: list[str], max_paginas: int = 10, pausa: float = 0.5) -> Iterator[dict]:
     for pagina in range(1, max_paginas + 1):
         wait = 2.0
+        r = None
         for _ in range(6):
-            r = _session.get(
+            try:
+                r = _session.get(
                 BUSCA,
                 params={
                     "tipos_documento": "edital",
@@ -126,11 +128,18 @@ def buscar_abertos(termo: str, ufs: list[str], max_paginas: int = 10, pausa: flo
                     "tam_pagina": 100,
                 },
                 timeout=60,
-            )
+                )
+            except requests.RequestException:
+                r = None
+                time.sleep(wait)
+                wait *= 2
+                continue
             if r.status_code != 429:
                 break
             time.sleep(wait)
             wait *= 2
+        if r is None:
+            raise RuntimeError(f"PNCP (busca) sem resposta após 6 tentativas: termo={termo!r} pagina={pagina}")
         r.raise_for_status()
         itens = r.json().get("items") or []
         yield from itens
