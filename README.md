@@ -5,7 +5,7 @@ aberta em SP e MG, classifica por nicho e manda a cada assinante só o que bate 
 perfil dele. Não usa LLM nesta fase.
 
 ```
-radar/pncp.py      cliente PNCP (modo busca + varredura pela API oficial, com backoff para 429)
+radar/pncp.py      cliente PNCP: API oficial de consulta (padrão, com backoff para 429) + busca do portal (só local)
 radar/nichos.py    nichos: termos de busca + regex de inclusão/exclusão
 radar/coletar.py   grava/atualiza editais em data/editais.db (SQLite versionado no repo)
 radar/enviar.py    e-mail diário (Pro) ou semanal com 3 itens (grátis); modo --ensaio grava HTML
@@ -20,7 +20,7 @@ tests/             teste ponta a ponta sem rede
 
 ## Como o negócio roda sozinho
 - **Todo dia 06:17:** GitHub Action coleta, envia e grava o log em `cerebro/memoria/execucoes.jsonl`.
-  Se a busca do portal falhar, tenta a API oficial (plano B) e registra o erro.
+  Usa a API oficial de consulta do PNCP (~30 min por rodada); falhas ficam registradas e o job aparece em vermelho no GitHub.
 - **Sexta 07:41:** GitHub Action gera o relatório da semana.
 - **Sexta depois das 08h:** tarefa agendada do Claude lê contexto, relatório e respostas dos assinantes,
   registra o feedback, deixa rascunhos de suporte e abre um Pull Request com ajustes de filtro.
@@ -30,7 +30,7 @@ tests/             teste ponta a ponta sem rede
 ```
 pip install -r requirements.txt
 cp config/assinantes.exemplo.json config/assinantes.json   # edite com seu e-mail
-python -m radar.coletar --ufs SP MG          # modo busca (padrão)
+python -m radar.coletar --ufs SP MG          # API oficial (padrão); --modo busca é mais rápido, mas só funciona de IP brasileiro/residencial
 python -m radar.enviar --ensaio              # gera data/saida/*.html sem enviar
 ```
 

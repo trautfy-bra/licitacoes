@@ -25,7 +25,7 @@ jobs:
       - run: pip install -r requirements.txt
       - name: Coletar editais do PNCP
         if: github.event.schedule != '41 10 * * 5'
-        run: python -m radar.coletar --ufs SP MG
+        run: python -m radar.coletar --ufs SP MG --modo varredura
       - name: Enviar e-mails
         if: github.event.schedule != '41 10 * * 5'
         env:

@@ -91,8 +91,11 @@ def _coletar(con: sqlite3.Connection, ufs: list[str], modo: str) -> dict:
         for uf in ufs:
             for mod in MODALIDADES:
                 for bruto in propostas_abertas(uf, mod):
+                    e = normalizar(bruto)
+                    if not classificar(e["objeto"]):
+                        continue  # só guarda o que cai em algum nicho: base pequena no repositório
                     total += 1
-                    if gravar(con, normalizar(bruto), agora):
+                    if gravar(con, e, agora):
                         novos += 1
                 con.commit()
     resumo = {"quando": agora, "modo": modo, "ufs": ufs, "lidos": total, "novos": novos}
@@ -109,14 +112,10 @@ def registrar(resumo: dict) -> None:
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("--ufs", nargs="+", default=["SP", "MG"])
-    ap.add_argument("--modo", choices=["busca", "varredura"], default="busca")
+    ap.add_argument("--modo", choices=["busca", "varredura"], default="varredura")
     a = ap.parse_args()
     try:
         registrar(main(a.ufs, a.modo))
-    except Exception as exc:  # registra a falha para a revisão semanal; no modo busca, tenta o plano B
+    except Exception as exc:  # registra a falha para a revisão semanal e falha o job (aparece no GitHub)
         registrar({"quando": datetime.now(timezone.utc).isoformat(timespec="seconds"), "modo": a.modo, "erro": repr(exc)})
-        if a.modo == "busca":
-            # plano B: API oficial
-            registrar(main(a.ufs, "varredura"))
-        else:
-            raise
+        raise
