@@ -4,7 +4,13 @@ on:
   schedule:
     - cron: "17 9 * * *"   # 06:17 em Brasília, todo dia
     - cron: "41 10 * * 5"  # sexta 07:41 em Brasília: relatório semanal para a revisão
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      etapa:
+        description: "tudo = coleta + envio; envio = só envia com a base atual"
+        type: choice
+        options: [tudo, envio]
+        default: tudo
 
 permissions:
   contents: write
@@ -24,7 +30,7 @@ jobs:
           python-version: "3.12"
       - run: pip install -r requirements.txt
       - name: Coletar editais do PNCP
-        if: github.event.schedule != '41 10 * * 5'
+        if: github.event.schedule != '41 10 * * 5' && inputs.etapa != 'envio'
         run: python -m radar.coletar --ufs SP MG --modo varredura
       - name: Enviar e-mails
         if: github.event.schedule != '41 10 * * 5'

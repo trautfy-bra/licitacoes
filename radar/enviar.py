@@ -26,6 +26,8 @@ SAIDA = RAIZ / "data" / "saida"
 
 BRT = timezone(timedelta(hours=-3))  # datas do PNCP vêm em horário de Brasília, sem fuso
 LIMITE_GRATIS = 3  # editais por semana no plano grátis
+LIMITE_EMAIL = 40  # teto por e-mail; o excedente vai no dia seguinte
+BASELINE = "0000-baseline"  # marca editais antigos na entrada de um assinante novo
 DIA_GRATIS = 0  # segunda-feira
 
 
@@ -116,12 +118,17 @@ Para ajustar seus filtros ou cancelar, responda este e-mail.</p>
     return assunto, corpo
 
 
+def _mascarar(email: str) -> str:
+    nome, _, dominio = email.partition("@")
+    return f"{nome[:2]}***@{dominio}"
+
+
 def enviar(dest: str, assunto: str, corpo: str, ensaio: bool) -> None:
     host = os.environ.get("SMTP_HOST")
     if ensaio or not host:
         SAIDA.mkdir(parents=True, exist_ok=True)
         (SAIDA / f"{dest.replace('@', '_at_')}.html").write_text(corpo, encoding="utf-8")
-        print(f"[ensaio] {dest}: {assunto}")
+        print(f"[ensaio] {_mascarar(dest)}: {assunto}")
         return
     msg = EmailMessage()
     msg["Subject"] = assunto
@@ -133,7 +140,7 @@ def enviar(dest: str, assunto: str, corpo: str, ensaio: bool) -> None:
         s.starttls()
         s.login(os.environ["SMTP_USER"], os.environ["SMTP_PASS"])
         s.send_message(msg)
-    print(f"[enviado] {dest}: {assunto}")
+    print(f"[enviado] {_mascarar(dest)}: {assunto}")
 
 
 def main(ensaio: bool = False) -> None:
@@ -144,17 +151,27 @@ def main(ensaio: bool = False) -> None:
         if gratis and agora.weekday() != DIA_GRATIS:
             continue
         editais = selecionar(con, a, agora)
-        if gratis:
-            editais = editais[:LIMITE_GRATIS]
-        if not editais:
+        novo = not con.execute("SELECT 1 FROM envios WHERE assinante=? LIMIT 1", (a["email"],)).fetchone()
+        if novo:
+            # Assinante novo: manda os mais recentes e marca o resto do estoque como visto,
+            # para os e-mails seguintes trazerem só o que for publicado daqui em diante.
+            editais.sort(key=lambda e: e["publicacao"] or "", reverse=True)
+        limite = LIMITE_GRATIS if gratis else LIMITE_EMAIL
+        enviar_agora, resto = editais[:limite], editais[limite:]
+        if not enviar_agora:
             continue
-        assunto, corpo = montar_email(a, editais, agora)
-        enviar(a["email"], assunto, corpo, ensaio)
+        enviar_agora.sort(key=lambda e: e["encerramento"] or "")
+        assunto, corpo = montar_email(a, enviar_agora, agora)
+        try:
+            enviar(a["email"], assunto, corpo, ensaio)
+        except Exception as exc:  # um assinante com problema não derruba os outros
+            print(f"[erro] envio falhou: {exc!r}")
+            continue
         if not ensaio:
-            con.executemany(
-                "INSERT OR IGNORE INTO envios VALUES (?,?,?)",
-                [(a["email"], e["id"], agora.isoformat(timespec="seconds")) for e in editais],
-            )
+            linhas = [(a["email"], e["id"], agora.isoformat(timespec="seconds")) for e in enviar_agora]
+            if novo:
+                linhas += [(a["email"], e["id"], BASELINE) for e in resto]
+            con.executemany("INSERT OR IGNORE INTO envios VALUES (?,?,?)", linhas)
             con.commit()
 
 
